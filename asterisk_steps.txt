@@ -1,0 +1,153 @@
+STEPS TO INSTALL & CONFIGURE ASTERISK
+-------------------------------------
+
+setup and update time using network time protocol
+=================================================
+sudo apt-get update
+sudo apt-get install ntpdate
+sudo ntpdate pool.ntp.org
+sudo apt-get install ntp
+date
+
+update system package list and install build-essential package
+==============================================================
+sudo apt-get update
+sudo apt-get install linux-headers-`uname -r`
+sudo apt-get install build-essential
+
+sudo mkdir /downloads
+cd /downloads
+
+Installing the Digium Asterisk Hardware Device Interface (DAHDI)
+================================================================
+sudo wget http://downloads.asterisk.org/pub/telephony/dahdi-linux-complete/dahdi-linux-complete-current.tar.gz
+sudo tar -zxvf dahdi-linux-complete-current.tar.gz
+
+(use 'ls' command to list the folder and find the name of dahdi folder you unzipped, mine was dahdi-linux-complete-3.0.0+3.0.0)
+
+cd dahdi-linux-complete-3.0.0+3.0.0
+sudo make all
+sudo make install
+
+Installing libpri .libpri is a C implementation of the Primary Rate ISDN specification.
+======================================================================================
+cd /downloads
+sudo wget http://downloads.asterisk.org/pub/telephony/libpri/libpri-current.tar.gz
+sudo tar -zxvf libpri-current.tar.gz
+(use 'ls' command to list the folder and find the name of libpri folder you unzipped)
+cd libpri-1.6.0
+sudo make all
+sudo make install
+
+
+Installing Asterisk VoIP Server
+===============================
+cd /downloads
+sudo wget http://downloads.asterisk.org/pub/telephony/asterisk/asterisk-15-current.tar.gz
+sudo tar -zxvf asterisk-15-current.tar.gz
+cd asterisk-15.6.0/contrib/scripts/
+sudo ./install_prereq install
+
+cd /downloads/asterisk-15.6.0
+sudo ./configure
+sudo make menuselect
+
+Use this menu to select which Asterisk Modules you would like to build.  If you know what features you need, for performance reasons, it is generally a good idea to disable the modules you won’t be using.
+Because you’ll have plenty of disk space available, it’s not a bad idea to install all the audio prompts.  Otherwise, Asterisk must transcode (convert audio from one encoding to another) the audio prompts each time they are needed, eating up bandwidth cycle and potentially adding to your server costs.  Scroll down to Core Sound Packages and select all the sound files for your languages and codecs.  Do the same for the Music On Hold File Packages and the Extras Sound Packages.
+
+sudo make
+sudo make install
+sudo make samples
+sudo make config
+sudo make install-logrotate
+
+sudo /etc/init.d/asterisk start
+
+
+
+
+Asterisk SIP & Extensions Configuration
+----------------------------------------
+
+Edit sip.conf
+-------------
+cd /etc/asterisk
+sudo nano sip.conf
+
+;paste extensions and passwords on top of the file
+
+[5000]
+type=friend
+secret=5000
+context=myphones
+host=dynamic
+
+[5001]
+type=friend
+secret=5001
+context=myphones
+host=dynamic
+
+[5002]
+type=friend
+secret=5002
+context=myphones
+host=dynamic
+
+scroll down and under the [general] section, paste like this 
+[general]
+context=public                  
+;issue the ifconfig command and get the eth0 inet adder ip and Mask and paste it in the localnet
+;for externip, add the elastic ip address
+;paste these contents
+
+nat=force_rport,comedia
+localnet=172.31.28.35/255.255.240.0
+externip=18.221.130.92
+canreinvite=no
+videosupport=yes
+dtmfmode=rfc2833
+qualify=yes
+disallow=all
+allow=opus
+allow=gsm
+allow=vp8
+allow=h264
+nat=yes
+
+;contents end
+
+press ctrl and O , it will ask to save. Press Enter to save
+press ctrl and X to exit 
+
+Edit extensions.conf
+------------------
+cd /etc/asterisk
+sudo nano extensions.conf
+;paste context and dialplans on top of the file
+;configuring the dial plan
+[myphones]
+exten => 5000,1,Dial(SIP/5000)
+exten => 5000,n,Hangup
+
+exten => 5001,1,Dial(SIP/5001)
+exten => 5001,n,Hangup
+
+exten => 5002,1,Dial(SIP/5002)
+exten => 5002,n,Hangup
+
+press ctrl and O , it will ask to save. Press Enter to save
+press ctrl and X to exit 
+
+Going into asterisk console for monitoring
+------------------------------------------
+sudo asterisk -rvvvv
+dialplan reload
+reload
+sip show users
+
+type 'exit' and press enter to exit from asterisk console.
+
+
+To get more details how to configure dialplan and extensions
+https://wiki.asterisk.org/wiki/display/AST/Dialplan
